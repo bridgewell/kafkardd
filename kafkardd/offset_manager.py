@@ -36,16 +36,14 @@ def _get_partition_offset_by_timestamp(consumer, topic_partition, timestamp, tim
 
 def _get_partition_earliest_offset(consumer, topic_partition):
     consumer.seek_to_beginning(topic_partition)
-    msg = consumer.next()
-    offset = msg.offset
-    return offset
+    consumer._update_fetch_positions([topic_partition])
+    return consumer.position(topic_partition)
 
 
 def _get_partition_latest_offset(consumer, topic_partition):
-    consumer.seek_to_beginning(topic_partition)
-    consumer.next()
-    offset = consumer.highwater(topic_partition)
-    return offset
+    consumer.seek_to_end(topic_partition)
+    consumer._update_fetch_positions([topic_partition])
+    return consumer.position(topic_partition)
 
 
 def _get_partition_timestamp_by_offset(consumer, topic_partition, offset, timestamp_extractor):
@@ -117,10 +115,22 @@ class ZKOffsetManager:
         self.partitions = partitions
         self.client = KazooClient(self.hosts)
         self.client.start()
+        self._check_path()
+
+    def _get_znode(self):
+        path = '{}/{}/{}'.format(self.prefix, self.user, self.topic)
+        return path
 
     def _get_zpath(self, partition):
         path = '{}/{}/{}/{}'.format(self.prefix, self.user, self.topic, partition)
         return path
+
+    def _check_path(self):
+        self.client.ensure_path(self._get_znode())
+        for p in self.partitions:
+            path = self._get_zpath(p)
+            if not self.client.exists(path):
+                self.client.create(path, '-1')
 
     def _get_single_offset(self, p):
         offset, znode_stat = self.client.get(self._get_zpath(p))

@@ -18,8 +18,7 @@ class KafkaRDDManager:
         self.kafka_offset_manager = KafkaOffsetManager(config['kafka'])
         self.partitions = self.kafka_offset_manager.get_partitions()
         self.zk_offset_manager = ZKOffsetManager(config['zookeeper'], self.partitions)
-
-        self.fetch_offset_ranges_by_policy(config['start_policy'], config['end_policy'])
+        self.offset_ranges = self.fetch_offset_ranges_by_policy(config['start_policy'], config['end_policy'])
 
     def _commit_offsets(self, offsets):
         self.zk_offset_manager.set_offsets(offsets)
@@ -38,8 +37,8 @@ class KafkaRDDManager:
     def fetch_offset_ranges_by_policy(self, start_policy, end_policy):
         start_offsets = self._fetch_offsets_by_policy(start_policy)
         end_offsets = self._fetch_offsets_by_policy(end_policy)
-        self.offset_ranges = {p: (start_offsets[p], end_offsets[p]) for p in self.partitions}
-        return self.offset_ranges
+        offset_ranges = {p: (start_offsets[p], end_offsets[p]) for p in self.partitions}
+        return offset_ranges
 
     def _process_single_chunk(self, chunk, msg_rdd_processor):
         kafka_params = {"metadata.broker.list": self.kafka_hosts}

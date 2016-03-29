@@ -8,6 +8,10 @@ try:
         os.environ['SPARK_HOME'], 'python'))
     sys.path.append(os.path.join(
         os.environ['SPARK_HOME'], 'python', 'lib', 'py4j-0.8.2.1-src.zip'))
+    os.environ['PYSPARK_SUBMIT_ARGS'] = ' '.join([
+        '--packages',
+        'org.apache.spark:spark-streaming-kafka_2.10:1.5.2',
+        'pyspark-shell'])
 except KeyError:
     raise Exception('$SPARK_HOME not set')
 
@@ -16,8 +20,9 @@ from subprocess import call
 import pytest
 
 from kafka import KafkaProducer
-from kafkardd.offset_manager import KafkaOffsetManager
-from kafkardd.testutil import generate_message
+from kafkardd.offset_manager import KafkaOffsetManager, ZKOffsetManager
+
+from testutil import generate_message
 
 def pytest_addoption(parser):
     parser.addoption('--zk_host', action='store',
@@ -93,13 +98,25 @@ def zk_user():
     return 'test_user'
 
 @pytest.fixture(scope='session')
+def zk_offset_manager(request, zk_host, zk_prefix, zk_user, kafka_topic, kafka_partition_count):
+    zk = ZKOffsetManager({
+            'hosts': zk_host,
+            'prefix': zk_prefix,
+            'user': zk_user,
+            'topic': kafka_topic
+        },
+        range(0, kafka_partition_count))
+    #request.addfinalizer(lambda: zk.stop())
+    return zk
+
+@pytest.fixture(scope='session')
 def spark_context(request):
     from pyspark import SparkContext
     from pyspark.conf import SparkConf
     conf = (SparkConf()
                 .setMaster('local[2]')
                 .setAppName('pytest-pyspark-local-testing')
-                .set('spark.packages', 'org.apache.spark:spark-streaming-kafka_2.10:1.5.2'))
+            )
     sc = SparkContext(conf=conf)
     request.addfinalizer(lambda: sc.stop())
     return sc

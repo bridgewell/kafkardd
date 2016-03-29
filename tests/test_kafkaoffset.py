@@ -3,17 +3,20 @@
 import pytest
 
 from kafkardd.offset_manager import KafkaOffsetManager
-from kafkardd.testutil import extract_timestamp_from_message
+
+from testutil import extract_timestamp_from_message
 
 msg_test_offset = 158
 
 @pytest.fixture(scope='session')
-def kafka_offset_manager(kafka_host, kafka_topic):
-    return KafkaOffsetManager({
+def kafka_offset_manager(request, kafka_host, kafka_topic):
+    kafka = KafkaOffsetManager({
         'hosts': ','.join(kafka_host),
         'topic': kafka_topic,
         'timestamp_extractor': extract_timestamp_from_message
         })
+    #request.addfinalizer(lambda: kafka.stop())
+    return kafka
 
 def test_topic(kafka_offset_manager, kafka_partition_count):
     assert kafka_offset_manager.get_partitions() == range(0, kafka_partition_count)

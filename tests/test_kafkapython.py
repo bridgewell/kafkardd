@@ -4,7 +4,7 @@ import pytest
 
 from kafka import KafkaConsumer
 from kafka.common import TopicPartition
-from kafkardd.testutil import validate_message
+from testutil import validate_message
 
 msg_test_offset = 158
 

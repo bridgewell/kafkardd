@@ -15,7 +15,7 @@ def generate_chunk(ranges, chunk_size):
         [[(0, 0, 10), (2, 5, 20)]]
     """
     if chunk_size <= 0:
-        yield [(p, s, e) for p, (s, e) in ranges.iteritems() if s != e]
+        yield [(p, s, e) for p, (s, e) in ranges.iteritems()]
         return
 
     ends = {p: e for p, (s, e) in ranges.iteritems() if s != e}

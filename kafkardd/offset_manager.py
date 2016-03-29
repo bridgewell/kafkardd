@@ -46,11 +46,6 @@ def _get_partition_latest_offset(consumer, topic_partition):
     return consumer.position(topic_partition)
 
 
-def _get_partition_timestamp_by_offset(consumer, topic_partition, offset, timestamp_extractor):
-    timestatmp = _peek_msg_timestamp_by_offset(consumer, offset, topic_partition, timestamp_extractor)
-    return timestatmp
-
-
 def _get_partitions_by_topic(hosts, topic):
     consumer = KafkaConsumer(bootstrap_servers=hosts)
     partitions = list(consumer.partitions_for_topic(topic))
@@ -96,15 +91,15 @@ class KafkaOffsetManager:
         return offsets
 
     def get_timestamp_by_offsets(self, offsets):
-        timestamps = {p: _get_partition_timestamp_by_offset(
+        timestamps = {p: _peek_msg_timestamp_by_offset(
             self.consumers[p],
-            self.topic_partitions[p],
             offsets[p],
+            self.topic_partitions[p],
             self.timestamp_extractor) for p in self.partitions}
         return timestamps
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        map(lambda (p, c): c.stop(), self.consumers.items())
+    def stop(self):
+        map(lambda (p, c): c.close(), self.consumers.items())
 
 class ZKOffsetManager:
     def __init__(self, config, partitions):
@@ -132,20 +127,20 @@ class ZKOffsetManager:
             if not self.client.exists(path):
                 self.client.create(path, '-1')
 
-    def _get_single_offset(self, p):
-        offset, znode_stat = self.client.get(self._get_zpath(p))
-        return int(offset)
-
     def get_offsets(self):
         offsets = {p: self._get_single_offset(p) for p in self.partitions}
         return offsets
 
-    def _set_single_offset(self, p, o):
-        self.client.set(self._get_zpath(p), str(o))
+    def _get_single_offset(self, p):
+        offset, znode_stat = self.client.get(self._get_zpath(p))
+        return int(offset)
 
     def set_offsets(self, offsets):
         for p, o in offsets.iteritems():
             self._set_single_offset(p, o)
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def _set_single_offset(self, p, o):
+        self.client.set(self._get_zpath(p), str(o))
+
+    def stop(self):
         self.client.stop()

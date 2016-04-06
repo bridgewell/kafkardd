@@ -25,23 +25,19 @@ sc = pyspark.SparkContext()
 def rdd_processer(msg_rdd):
 	print msg_rdd.take(10)
 
-from kafkardd.kafkardd import KafkaRDDManager
+from kafkardd.kafkardd import KafkaRDDManager, OffsetPolicy
 
 kafka_rdd_config = {
 	'spark_context': sc,
-	'chunk_size': 0,
-	'parallelism': 0,
-	'start_policy': {'type': 'committed'},
-	'end_policy': {'type': 'latest'},
+	'start_policy': OffsetPolicy('committed'),
+	'end_policy': OffsetPolicy('latest'),
 	'kafka': {
 		'hosts': 'localhost:9092',
 		'topic': 'test_topic'
 		},
 	'zookeeper': {
 		'hosts': 'localhost:2181',
-		'prefix': '/path/to/keep/offset',
-		'user': 'test',
-		'topic': 'test_topic'
+		'znode': '/path/to/keep/offset'
 		}
 	}
 kafka_rdd_manager = KafkaRDDManager(kafka_rdd_config)

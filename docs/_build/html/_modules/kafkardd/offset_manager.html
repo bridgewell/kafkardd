@@ -1,0 +1,299 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>kafkardd.offset_manager &mdash; kafkardd 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="kafkardd 0.0.1 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for kafkardd.offset_manager</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">kafka</span> <span class="kn">import</span> <span class="n">KafkaConsumer</span>
+<span class="kn">from</span> <span class="nn">kafka.common</span> <span class="kn">import</span> <span class="n">TopicPartition</span>
+<span class="kn">from</span> <span class="nn">kazoo.client</span> <span class="kn">import</span> <span class="n">KazooClient</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_peek_msg_timestamp_by_offset</span><span class="p">(</span><span class="n">consumer</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">timestamp_extractor</span><span class="p">):</span>
+    <span class="n">topic_partition</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">consumer</span><span class="o">.</span><span class="n">assignment</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">consumer</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">topic_partition</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="n">consumer</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+    <span class="n">timestamp</span> <span class="o">=</span> <span class="n">timestamp_extractor</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">timestamp</span>
+
+
+<span class="k">def</span> <span class="nf">_bsearch_offset_by_timestamp</span><span class="p">(</span><span class="n">consumer</span><span class="p">,</span> <span class="n">start_offset</span><span class="p">,</span> <span class="n">end_offset</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">timestamp_extractor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Search the largest offset that the message timestamp less than target timestamp</span>
+<span class="sd">    Args:</span>
+<span class="sd">        consumer (KafkaConsumer): kafka consumer for specific topic partition</span>
+<span class="sd">        start_offset (int): search start range</span>
+<span class="sd">        end_offset (int): search end range</span>
+<span class="sd">        timestamp (int): target timestamp</span>
+<span class="sd">        timestamp_extractor (callback): callback to return timestamp extracted from a kafka message</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        int</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">start_offset</span> <span class="o">==</span> <span class="n">end_offset</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">_peek_msg_timestamp_by_offset</span><span class="p">(</span><span class="n">consumer</span><span class="p">,</span> <span class="n">start_offset</span><span class="p">,</span> <span class="n">timestamp_extractor</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">timestamp</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">start_offset</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">start_offset</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">peek_offset</span> <span class="o">=</span> <span class="p">(</span><span class="n">start_offset</span> <span class="o">+</span> <span class="n">end_offset</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">_peek_msg_timestamp_by_offset</span><span class="p">(</span><span class="n">consumer</span><span class="p">,</span> <span class="n">peek_offset</span><span class="p">,</span> <span class="n">timestamp_extractor</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">timestamp</span><span class="p">:</span>
+        <span class="n">start_offset</span> <span class="o">=</span> <span class="n">peek_offset</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">end_offset</span> <span class="o">=</span> <span class="n">peek_offset</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">_bsearch_offset_by_timestamp</span><span class="p">(</span><span class="n">consumer</span><span class="p">,</span> <span class="n">start_offset</span><span class="p">,</span> <span class="n">end_offset</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">timestamp_extractor</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">offset</span>
+
+
+<span class="k">def</span> <span class="nf">_get_partition_offset_by_timestamp</span><span class="p">(</span><span class="n">consumer</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">timestamp_extractor</span><span class="p">):</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">_get_partition_earliest_offset</span><span class="p">(</span><span class="n">consumer</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">_get_partition_latest_offset</span><span class="p">(</span><span class="n">consumer</span><span class="p">)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">_bsearch_offset_by_timestamp</span><span class="p">(</span><span class="n">consumer</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">timestamp_extractor</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">offset</span>
+
+
+<span class="k">def</span> <span class="nf">_get_partition_earliest_offset</span><span class="p">(</span><span class="n">consumer</span><span class="p">):</span>
+    <span class="n">topic_partition</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">consumer</span><span class="o">.</span><span class="n">assignment</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">consumer</span><span class="o">.</span><span class="n">seek_to_beginning</span><span class="p">()</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">consumer</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">topic_partition</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">offset</span>
+
+
+<span class="k">def</span> <span class="nf">_get_partition_latest_offset</span><span class="p">(</span><span class="n">consumer</span><span class="p">):</span>
+    <span class="n">topic_partition</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">consumer</span><span class="o">.</span><span class="n">assignment</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">consumer</span><span class="o">.</span><span class="n">seek_to_end</span><span class="p">()</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">consumer</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">topic_partition</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">offset</span>
+
+
+<span class="k">def</span> <span class="nf">_get_partitions_by_topic</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">topic</span><span class="p">):</span>
+    <span class="n">consumer</span> <span class="o">=</span> <span class="n">KafkaConsumer</span><span class="p">(</span><span class="n">bootstrap_servers</span><span class="o">=</span><span class="n">hosts</span><span class="p">)</span>
+    <span class="n">partitions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">consumer</span><span class="o">.</span><span class="n">partitions_for_topic</span><span class="p">(</span><span class="n">topic</span><span class="p">))</span>
+    <span class="n">consumer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">partitions</span>
+
+
+<div class="viewcode-block" id="KafkaOffsetManager"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.offset_manager.KafkaOffsetManager">[docs]</a><span class="k">class</span> <span class="nc">KafkaOffsetManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Kafka offset fetcher</span>
+<span class="sd">    Args:</span>
+<span class="sd">        config (dict): configuration</span>
+<span class="sd">            &#39;hosts&#39; (str) : hosts list of Kafka cluster seperated by &#39;,&#39;</span>
+<span class="sd">                ex. &#39;192.168.67.65:9092,192.168.67.67:9092&#39;</span>
+<span class="sd">            &#39;topic&#39; (str) : Kafka topic to fetch</span>
+<span class="sd">            &#39;timestamp_extractor&#39; (callback, optional) : function to extract timestamp from messages</span>
+<span class="sd">                required for get_offsets_by_timestamp() and get_timestamp_by_offsets()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+        <span class="n">hosts</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;hosts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="n">topic</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;topic&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">partitions</span> <span class="o">=</span> <span class="n">_get_partitions_by_topic</span><span class="p">(</span><span class="n">hosts</span><span class="p">,</span> <span class="n">topic</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_consumers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">partitions</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_consumers</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">KafkaConsumer</span><span class="p">(</span><span class="n">bootstrap_servers</span><span class="o">=</span><span class="n">hosts</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_consumers</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">([</span><span class="n">TopicPartition</span><span class="p">(</span><span class="n">topic</span><span class="p">,</span> <span class="n">p</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_timestamp_extractor</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;timestamp_extractor&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="KafkaOffsetManager.get_earliest_offsets"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.offset_manager.KafkaOffsetManager.get_earliest_offsets">[docs]</a>    <span class="k">def</span> <span class="nf">get_earliest_offsets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get earliest offsets of each partitions</span>
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            dict : offsets of each partitions { pid (int) : offset (int) }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">_get_partition_earliest_offset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_consumers</span><span class="p">[</span><span class="n">p</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">partitions</span><span class="p">}</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get earliest offsets </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">offsets</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">offsets</span></div>
+
+<div class="viewcode-block" id="KafkaOffsetManager.get_latest_offsets"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.offset_manager.KafkaOffsetManager.get_latest_offsets">[docs]</a>    <span class="k">def</span> <span class="nf">get_latest_offsets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get latest offsets of each partitions</span>
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            dict : offsets of each partitions { pid (int) : offset (int) }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">_get_partition_latest_offset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_consumers</span><span class="p">[</span><span class="n">p</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">partitions</span><span class="p">}</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get latest offsets </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">offsets</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">offsets</span></div>
+
+<div class="viewcode-block" id="KafkaOffsetManager.get_offsets_by_timestamp"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.offset_manager.KafkaOffsetManager.get_offsets_by_timestamp">[docs]</a>    <span class="k">def</span> <span class="nf">get_offsets_by_timestamp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get latest offsets of each partitions which message timestamp less than target timestamp</span>
+<span class="sd">        Assume timestamp of messages in each partitions are monotone increasing</span>
+<span class="sd">        Args:</span>
+<span class="sd">            timestamp (int) : target timestamp</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            dict : offsets of each partitions { pid (int) : offset (int) }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">_get_partition_offset_by_timestamp</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_consumers</span><span class="p">[</span><span class="n">p</span><span class="p">],</span>
+            <span class="n">timestamp</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_timestamp_extractor</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">partitions</span><span class="p">}</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get offsets by timestamp </span><span class="si">%d</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">,</span> <span class="n">offsets</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">offsets</span></div>
+
+<div class="viewcode-block" id="KafkaOffsetManager.get_timestamp_by_offsets"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.offset_manager.KafkaOffsetManager.get_timestamp_by_offsets">[docs]</a>    <span class="k">def</span> <span class="nf">get_timestamp_by_offsets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offsets</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get timestamp of each partitions with given offsets</span>
+<span class="sd">        Args:</span>
+<span class="sd">            offsets (dict) : { pid : offset }</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            dict : timestamps of each partitions { pid (int) : offset (int) }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">timestamps</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">_peek_msg_timestamp_by_offset</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_consumers</span><span class="p">[</span><span class="n">p</span><span class="p">],</span>
+            <span class="n">offsets</span><span class="p">[</span><span class="n">p</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_timestamp_extractor</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">partitions</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">timestamps</span></div>
+
+<div class="viewcode-block" id="KafkaOffsetManager.stop"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.offset_manager.KafkaOffsetManager.stop">[docs]</a>    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stop manager</span>
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_consumers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="ZKOffsetManager"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.offset_manager.ZKOffsetManager">[docs]</a><span class="k">class</span> <span class="nc">ZKOffsetManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Zookeeper offset manager for using Zookeeper to manage offsets fetching and committing</span>
+<span class="sd">    Args:</span>
+<span class="sd">        config (dict): configuration</span>
+<span class="sd">            &#39;hosts&#39; (str) : hosts list of Zookeeper cluster seperated by &#39;,&#39;</span>
+<span class="sd">                ex. &#39;192.168.67.65:2181,192.168.67.67:2181&#39;</span>
+<span class="sd">            &#39;znode&#39; (str) : znode path, the name space consists of data registers</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">partitions</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_partitions</span> <span class="o">=</span> <span class="n">partitions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_znode</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;znode&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span> <span class="o">=</span> <span class="n">KazooClient</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;hosts&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_path</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_get_zpath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">partition</span><span class="p">):</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;{}/{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_znode</span><span class="p">,</span> <span class="n">partition</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">path</span>
+
+    <span class="k">def</span> <span class="nf">_check_path</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">ensure_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_znode</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partitions</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_zpath</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ZKOffsetManager.get_offsets"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.offset_manager.ZKOffsetManager.get_offsets">[docs]</a>    <span class="k">def</span> <span class="nf">get_offsets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get offsets of each partitions</span>
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            dict : offsets of each partitions { pid (int) : offset (int) }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_single_offset</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partitions</span><span class="p">}</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get committed offsets </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">offsets</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">offsets</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_single_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="n">offset</span><span class="p">,</span> <span class="n">znode_stat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_zpath</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ZKOffsetManager.set_offsets"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.offset_manager.ZKOffsetManager.set_offsets">[docs]</a>    <span class="k">def</span> <span class="nf">set_offsets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offsets</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set offsets of each partitions</span>
+<span class="sd">        Args:</span>
+<span class="sd">            offsets (dict) : offsets of each partitions { pid (int) : offset (int) }</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;set committed offsets </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">offsets</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">offsets</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_set_single_offset</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_set_single_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">offset</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_zpath</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">offset</span><span class="p">))</span>
+
+<div class="viewcode-block" id="ZKOffsetManager.stop"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.offset_manager.ZKOffsetManager.stop">[docs]</a>    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stop manager</span>
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_client</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, ShuTong.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

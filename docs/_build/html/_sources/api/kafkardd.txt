@@ -1,0 +1,38 @@
+kafkardd package
+================
+
+Submodules
+----------
+
+kafkardd.kafkardd module
+------------------------
+
+.. automodule:: kafkardd.kafkardd
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+kafkardd.offset_manager module
+------------------------------
+
+.. automodule:: kafkardd.offset_manager
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+kafkardd.util module
+--------------------
+
+.. automodule:: kafkardd.util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: kafkardd
+    :members:
+    :undoc-members:
+    :show-inheritance:

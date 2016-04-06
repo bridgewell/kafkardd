@@ -37,14 +37,14 @@ def test_consumer_offset_seek(kafka_consumer, kafka_tp):
 
 def test_consumer_offset_seek_to_beginning(kafka_consumer, kafka_tp):
     kafka_consumer.seek_to_beginning(kafka_tp)
-    assert kafka_consumer.position(kafka_tp) == None
+    assert kafka_consumer.position(kafka_tp) == 0
     msg = kafka_consumer.next()
     assert msg.offset == 0
     assert kafka_consumer.position(kafka_tp) == 1
 
-def test_consumer_offset_seek_to_end(kafka_consumer, kafka_tp):
+def test_consumer_offset_seek_to_end(kafka_consumer, kafka_tp, kafka_msg_count):
     kafka_consumer.seek_to_end(kafka_tp)
-    assert kafka_consumer.position(kafka_tp) == None
+    assert kafka_consumer.position(kafka_tp) == kafka_msg_count
 
 def test_consumer_fetch_one(kafka_consumer, kafka_tp):
     kafka_consumer.seek(kafka_tp, msg_test_offset)

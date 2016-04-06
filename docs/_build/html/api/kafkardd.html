@@ -1,0 +1,312 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>kafkardd package &mdash; kafkardd 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="kafkardd 0.0.1 documentation" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="kafkardd-package">
+<h1>kafkardd package<a class="headerlink" href="#kafkardd-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="kafkardd-kafkardd-module">
+<h2>kafkardd.kafkardd module<a class="headerlink" href="#kafkardd-kafkardd-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-kafkardd.offset_manager">
+<span id="kafkardd-offset-manager-module"></span><h2>kafkardd.offset_manager module<a class="headerlink" href="#module-kafkardd.offset_manager" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="kafkardd.offset_manager.KafkaOffsetManager">
+<em class="property">class </em><code class="descclassname">kafkardd.offset_manager.</code><code class="descname">KafkaOffsetManager</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/offset_manager.html#KafkaOffsetManager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.offset_manager.KafkaOffsetManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Kafka offset fetcher
+Args:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>config (dict): configuration</dt>
+<dd><dl class="first docutils">
+<dt>&#8216;hosts&#8217; (str)</dt>
+ <span class="classifier-delimiter">:</span> <span class="classifier">hosts list of Kafka cluster seperated by &#8216;,&#8217;</span><dd>ex. &#8216;192.168.67.65:9092,192.168.67.67:9092&#8217;</dd>
+</dl>
+<p>&#8216;topic&#8217; (str) : Kafka topic to fetch
+&#8216;timestamp_extractor&#8217; (callback, optional) : function to extract timestamp from messages</p>
+<blockquote class="last">
+<div>required for get_offsets_by_timestamp() and get_timestamp_by_offsets()</div></blockquote>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="method">
+<dt id="kafkardd.offset_manager.KafkaOffsetManager.get_earliest_offsets">
+<code class="descname">get_earliest_offsets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/offset_manager.html#KafkaOffsetManager.get_earliest_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.offset_manager.KafkaOffsetManager.get_earliest_offsets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get earliest offsets of each partitions
+Args:</p>
+<blockquote>
+<div>None</div></blockquote>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>dict : offsets of each partitions { pid (int) : offset (int) }</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="kafkardd.offset_manager.KafkaOffsetManager.get_latest_offsets">
+<code class="descname">get_latest_offsets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/offset_manager.html#KafkaOffsetManager.get_latest_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.offset_manager.KafkaOffsetManager.get_latest_offsets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get latest offsets of each partitions
+Args:</p>
+<blockquote>
+<div>None</div></blockquote>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>dict : offsets of each partitions { pid (int) : offset (int) }</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="kafkardd.offset_manager.KafkaOffsetManager.get_offsets_by_timestamp">
+<code class="descname">get_offsets_by_timestamp</code><span class="sig-paren">(</span><em>timestamp</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/offset_manager.html#KafkaOffsetManager.get_offsets_by_timestamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.offset_manager.KafkaOffsetManager.get_offsets_by_timestamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get latest offsets of each partitions which message timestamp less than target timestamp
+Assume timestamp of messages in each partitions are monotone increasing
+Args:</p>
+<blockquote>
+<div>timestamp (int) : target timestamp</div></blockquote>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>dict : offsets of each partitions { pid (int) : offset (int) }</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="kafkardd.offset_manager.KafkaOffsetManager.get_timestamp_by_offsets">
+<code class="descname">get_timestamp_by_offsets</code><span class="sig-paren">(</span><em>offsets</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/offset_manager.html#KafkaOffsetManager.get_timestamp_by_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.offset_manager.KafkaOffsetManager.get_timestamp_by_offsets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get timestamp of each partitions with given offsets
+Args:</p>
+<blockquote>
+<div>offsets (dict) : { pid : offset }</div></blockquote>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>dict : timestamps of each partitions { pid (int) : offset (int) }</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="kafkardd.offset_manager.KafkaOffsetManager.stop">
+<code class="descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/offset_manager.html#KafkaOffsetManager.stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.offset_manager.KafkaOffsetManager.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop manager
+Args:</p>
+<blockquote>
+<div>None</div></blockquote>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>None</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="kafkardd.offset_manager.ZKOffsetManager">
+<em class="property">class </em><code class="descclassname">kafkardd.offset_manager.</code><code class="descname">ZKOffsetManager</code><span class="sig-paren">(</span><em>config</em>, <em>partitions</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/offset_manager.html#ZKOffsetManager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.offset_manager.ZKOffsetManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>Zookeeper offset manager for using Zookeeper to manage offsets fetching and committing
+Args:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>config (dict): configuration</dt>
+<dd><dl class="first docutils">
+<dt>&#8216;hosts&#8217; (str)</dt>
+ <span class="classifier-delimiter">:</span> <span class="classifier">hosts list of Zookeeper cluster seperated by &#8216;,&#8217;</span><dd>ex. &#8216;192.168.67.65:2181,192.168.67.67:2181&#8217;</dd>
+</dl>
+<p class="last">&#8216;znode&#8217; (str) : znode path, the name space consists of data registers</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="method">
+<dt id="kafkardd.offset_manager.ZKOffsetManager.get_offsets">
+<code class="descname">get_offsets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/offset_manager.html#ZKOffsetManager.get_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.offset_manager.ZKOffsetManager.get_offsets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get offsets of each partitions
+Args:</p>
+<blockquote>
+<div>None</div></blockquote>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>dict : offsets of each partitions { pid (int) : offset (int) }</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="kafkardd.offset_manager.ZKOffsetManager.set_offsets">
+<code class="descname">set_offsets</code><span class="sig-paren">(</span><em>offsets</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/offset_manager.html#ZKOffsetManager.set_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.offset_manager.ZKOffsetManager.set_offsets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set offsets of each partitions
+Args:</p>
+<blockquote>
+<div>offsets (dict) : offsets of each partitions { pid (int) : offset (int) }</div></blockquote>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>None</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="kafkardd.offset_manager.ZKOffsetManager.stop">
+<code class="descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/offset_manager.html#ZKOffsetManager.stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.offset_manager.ZKOffsetManager.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop manager
+Args:</p>
+<blockquote>
+<div>None</div></blockquote>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>None</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-kafkardd.util">
+<span id="kafkardd-util-module"></span><h2>kafkardd.util module<a class="headerlink" href="#module-kafkardd.util" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="kafkardd.util.generate_chunk">
+<code class="descclassname">kafkardd.util.</code><code class="descname">generate_chunk</code><span class="sig-paren">(</span><em>ranges</em>, <em>chunk_size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/util.html#generate_chunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.util.generate_chunk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split ranges into chunks with proper size.
+Args:</p>
+<blockquote>
+<div><p>ranges (dict): ranges[partition] = (start, end)
+chunk_size (int): the max size of each chunk,</p>
+<blockquote>
+<div>if less than zero, it won&#8217;t chunk</div></blockquote>
+</div></blockquote>
+<dl class="docutils">
+<dt>Yields:</dt>
+<dd>list of (partition, start, end)</dd>
+<dt>Examples:</dt>
+<dd><div class="first last highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">generate_chunk</span><span class="p">({</span><span class="mi">0</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="mi">1</span><span class="p">:</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="mi">2</span><span class="p">:</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">)},</span> <span class="mi">5</span><span class="p">))</span>
+<span class="go">[[(0, 0, 5), (2, 5, 10)], [(0, 5, 10), (2, 10, 15)], [(2, 15, 20)]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">generate_chunk</span><span class="p">({</span><span class="mi">0</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="mi">1</span><span class="p">:</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="mi">2</span><span class="p">:</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">)},</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="go">[[(0, 0, 10), (2, 5, 20)]]</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="kafkardd.util.split_chunks_by_parallelism">
+<code class="descclassname">kafkardd.util.</code><code class="descname">split_chunks_by_parallelism</code><span class="sig-paren">(</span><em>chunks</em>, <em>parallelism</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/kafkardd/util.html#split_chunks_by_parallelism"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#kafkardd.util.split_chunks_by_parallelism" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split chunks into smaller chunks according to parallelism
+Args:</p>
+<blockquote>
+<div>chunks (list): list of (partition, start, end)
+parallelism (int): number for parallel processing</div></blockquote>
+<dl class="docutils">
+<dt>Returns:</dt>
+<dd>list of (partition, start, end)</dd>
+<dt>Examples:</dt>
+<dd><div class="first last highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">split_chunks_by_parallelism</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">)],</span> <span class="mi">5</span><span class="p">)</span>
+<span class="go">[(0, 0, 5), (0, 5, 10), (2, 5, 13), (2, 13, 20)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">split_chunks_by_parallelism</span><span class="p">([(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">)],</span> <span class="mi">0</span><span class="p">)</span>
+<span class="go">[(0, 0, 10), (2, 5, 20)]</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-kafkardd">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-kafkardd" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">kafkardd package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#kafkardd-kafkardd-module">kafkardd.kafkardd module</a></li>
+<li><a class="reference internal" href="#module-kafkardd.offset_manager">kafkardd.offset_manager module</a></li>
+<li><a class="reference internal" href="#module-kafkardd.util">kafkardd.util module</a></li>
+<li><a class="reference internal" href="#module-kafkardd">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/kafkardd.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, ShuTong.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+      |
+      <a href="../_sources/api/kafkardd.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

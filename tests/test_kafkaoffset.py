@@ -2,7 +2,7 @@
 
 import pytest
 
-from kafkardd.offset_manager import KafkaOffsetManager
+from kafkardd.kafkaoffset import KafkaOffsetManager
 
 from testutil import extract_timestamp_from_message
 
@@ -19,7 +19,7 @@ def kafka_offset_manager(request, kafka_host, kafka_topic):
     return kafka
 
 def test_topic(kafka_offset_manager, kafka_partition_count):
-    assert kafka_offset_manager.get_partitions() == range(0, kafka_partition_count)
+    assert kafka_offset_manager.partitions == range(0, kafka_partition_count)
 
 def test_offset_get(kafka_offset_manager, kafka_partition_count, kafka_msg_count):
     earliest_offsets = kafka_offset_manager.get_earliest_offsets()
@@ -31,7 +31,7 @@ def test_offset_get(kafka_offset_manager, kafka_partition_count, kafka_msg_count
 def test_offset_get_by_timestamp(kafka_offset_manager, kafka_partition_count):
     offsets = kafka_offset_manager.get_offsets_by_timestamp(msg_test_offset)
     for p in range(0, kafka_partition_count):
-        assert offsets[p] == msg_test_offset
+        assert offsets[p] == msg_test_offset - 1
 
 def test_timestamp_get_by_offset(kafka_offset_manager, kafka_partition_count):
     offsets = {}

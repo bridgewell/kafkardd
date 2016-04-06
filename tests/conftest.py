@@ -20,7 +20,8 @@ from subprocess import call
 import pytest
 
 from kafka import KafkaProducer
-from kafkardd.offset_manager import KafkaOffsetManager, ZKOffsetManager
+from kafkardd.kafkaoffset import KafkaOffsetManager
+from kafkardd.zkoffset import ZKOffsetManager
 
 from testutil import generate_message
 
@@ -83,7 +84,7 @@ def kafka_partition_count(request):
 
 @pytest.fixture(scope='session')
 def kafka_msg_count(request):
-    return 1000
+    return 300
 
 @pytest.fixture(scope='session')
 def zk_host(request):
@@ -91,19 +92,13 @@ def zk_host(request):
 
 @pytest.fixture(scope='session')
 def zk_prefix():
-    return '/path/to/save'
+    return '/path/to/node'
 
 @pytest.fixture(scope='session')
-def zk_user():
-    return 'test_user'
-
-@pytest.fixture(scope='session')
-def zk_offset_manager(request, zk_host, zk_prefix, zk_user, kafka_topic, kafka_partition_count):
+def zk_offset_manager(request, zk_host, zk_prefix, kafka_partition_count):
     zk = ZKOffsetManager({
             'hosts': zk_host,
-            'prefix': zk_prefix,
-            'user': zk_user,
-            'topic': kafka_topic
+            'znode': zk_prefix
         },
         range(0, kafka_partition_count))
     #request.addfinalizer(lambda: zk.stop())

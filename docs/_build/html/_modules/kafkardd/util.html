@@ -1,0 +1,164 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>kafkardd.util &mdash; kafkardd 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="kafkardd 0.0.1 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for kafkardd.util</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<div class="viewcode-block" id="generate_chunk"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.util.generate_chunk">[docs]</a><span class="k">def</span> <span class="nf">generate_chunk</span><span class="p">(</span><span class="n">ranges</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Split ranges into chunks with proper size.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        ranges (dict): ranges[partition] = (start, end)</span>
+<span class="sd">        chunk_size (int): the max size of each chunk,</span>
+<span class="sd">            if less than zero, it won&#39;t chunk</span>
+<span class="sd">    Yields:</span>
+<span class="sd">        list of (partition, start, end)</span>
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; list(generate_chunk({0: (0, 10), 1: (5, 5), 2: (5, 20)}, 5))</span>
+<span class="sd">        [[(0, 0, 5), (2, 5, 10)], [(0, 5, 10), (2, 10, 15)], [(2, 15, 20)]]</span>
+<span class="sd">        &gt;&gt;&gt; list(generate_chunk({0: (0, 10), 1: (5, 5), 2: (5, 20)}, -1))</span>
+<span class="sd">        [[(0, 0, 10), (2, 5, 20)]]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">chunk_size</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="p">[(</span><span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ranges</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()]</span>
+        <span class="k">return</span>
+
+    <span class="n">ends</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">e</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ranges</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span> <span class="k">if</span> <span class="n">s</span> <span class="o">!=</span> <span class="n">e</span><span class="p">}</span>
+    <span class="n">curs</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">s</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ranges</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span> <span class="k">if</span> <span class="n">s</span> <span class="o">!=</span> <span class="n">e</span><span class="p">}</span>
+
+    <span class="k">while</span> <span class="n">ends</span><span class="p">:</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">partition</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">ends</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">curs</span><span class="p">[</span><span class="n">partition</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">chunk_size</span>
+            <span class="k">if</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
+                <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">partition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+                <span class="n">curs</span><span class="p">[</span><span class="n">partition</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pool</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">partition</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">end</span><span class="p">))</span>
+                <span class="k">del</span> <span class="n">ends</span><span class="p">[</span><span class="n">partition</span><span class="p">]</span>
+        <span class="k">yield</span> <span class="n">pool</span></div>
+
+
+<span class="k">def</span> <span class="nf">_split_single_chunk</span><span class="p">(</span><span class="n">chunk_range</span><span class="p">,</span> <span class="n">split_factor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Split one chunk into smaller chunks according to split_factor</span>
+<span class="sd">    Args:</span>
+<span class="sd">        chunk_range (tuple): (partition, start, end)</span>
+<span class="sd">        split_factor (int): factor to split</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        list of (partition, start, end)</span>
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; _split_single_chunk((0, 0, 9), 4)</span>
+<span class="sd">        [(0, 0, 3), (0, 3, 6), (0, 6, 9)]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">(</span><span class="n">part</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span> <span class="o">=</span> <span class="n">chunk_range</span>
+    <span class="n">split_step_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span> <span class="o">+</span> <span class="n">split_factor</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">split_factor</span>
+    <span class="c1"># split_step_size, identical to ceil((end - start) / float(split_factor))</span>
+    <span class="c1"># use // (Floor Division) instead of / (Division)</span>
+    <span class="c1"># to make sure the expression is identical to ceil</span>
+    <span class="n">split_start</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">split_step_size</span><span class="p">)</span>
+    <span class="n">split_end</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">split_step_size</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span> <span class="n">split_start</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">zip</span><span class="p">([</span><span class="n">part</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">split_start</span><span class="p">),</span> <span class="n">split_start</span><span class="p">,</span> <span class="n">split_end</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="split_chunks_by_parallelism"><a class="viewcode-back" href="../../api/kafkardd.html#kafkardd.util.split_chunks_by_parallelism">[docs]</a><span class="k">def</span> <span class="nf">split_chunks_by_parallelism</span><span class="p">(</span><span class="n">chunks</span><span class="p">,</span> <span class="n">parallelism</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Split chunks into smaller chunks according to parallelism</span>
+<span class="sd">    Args:</span>
+<span class="sd">        chunks (list): list of (partition, start, end)</span>
+<span class="sd">        parallelism (int): number for parallel processing</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        list of (partition, start, end)</span>
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; split_chunks_by_parallelism([(0, 0, 10), (2, 5, 20)], 5)</span>
+<span class="sd">        [(0, 0, 5), (0, 5, 10), (2, 5, 13), (2, 13, 20)]</span>
+<span class="sd">        &gt;&gt;&gt; split_chunks_by_parallelism([(0, 0, 10), (2, 5, 20)], 0)</span>
+<span class="sd">        [(0, 0, 10), (2, 5, 20)]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">part_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">parallelism</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">part_num</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">chunks</span>
+
+    <span class="n">split_factor</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parallelism</span> <span class="o">/</span> <span class="n">part_num</span><span class="p">)</span>
+    <span class="n">chunks_list</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">_split_single_chunk</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">split_factor</span><span class="p">),</span> <span class="n">chunks</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">sp</span> <span class="k">for</span> <span class="n">ch</span> <span class="ow">in</span> <span class="n">chunks_list</span> <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="n">ch</span><span class="p">]</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, ShuTong.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '0.0.1'
-__author__ = 'ShuTong'
-__license__ = 'BSD 3-Clause License'
-__email__ = '#shutong'
-__copyright__ = 'Copyright (c) 2016, Shutong.'
+__version__ = '0.0.3'                                   # pragma: no cover
+__author__ = 'ShuTong'                                  # pragma: no cover
+__license__ = 'BSD 3-Clause License'                    # pragma: no cover
+__email__ = '#shutong'                                  # pragma: no cover
+__copyright__ = 'Copyright (c) 2016, Shutong.'          # pragma: no cover

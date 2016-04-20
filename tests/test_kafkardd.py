@@ -42,7 +42,7 @@ def test_kafka_offset_range_ts(kafkardd_manager, zk_offset_manager, kafka_partit
                         OffsetPolicy('timestamp', msg_test_timestamp)
                     )
     for p in range(0, kafka_partition_count):
-        assert offset_ranges[p] == (msg_test_offset + p, msg_test_timestamp - 1)
+        assert offset_ranges[p] == (msg_test_offset + p, msg_test_timestamp)
 
 def test_kafka_msg_processor(kafkardd_manager, kafka_partition_count, kafka_msg_count):
     kafkardd_manager.set_offset_ranges_by_policy(
@@ -52,7 +52,7 @@ def test_kafka_msg_processor(kafkardd_manager, kafka_partition_count, kafka_msg_
     def msg_processor(rdd):
         count = rdd.count()
         assert count == (kafka_partition_count
-                         * (msg_test_timestamp - msg_test_offset - 1)
+                         * (msg_test_timestamp - msg_test_offset)
                          - sum(range(0, kafka_partition_count)))
     kafkardd_manager.process(msg_processor)
 

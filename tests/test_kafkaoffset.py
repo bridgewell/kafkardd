@@ -31,7 +31,7 @@ def test_offset_get(kafka_offset_manager, kafka_partition_count, kafka_msg_count
 def test_offset_get_by_timestamp(kafka_offset_manager, kafka_partition_count):
     offsets = kafka_offset_manager.get_offsets_by_timestamp(msg_test_offset)
     for p in range(0, kafka_partition_count):
-        assert offsets[p] == msg_test_offset - 1
+        assert offsets[p] == msg_test_offset
 
 def test_timestamp_get_by_offset(kafka_offset_manager, kafka_partition_count):
     offsets = {}

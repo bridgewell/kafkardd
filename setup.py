@@ -19,5 +19,7 @@ setup(
     long_description=__doc__,
     license=kafkardd.__license__,
     packages=find_packages(),
-    install_requires=requirements('requirements.txt')
+    install_requires=requirements('requirements.txt'),
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest']
 )

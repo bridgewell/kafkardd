@@ -37,7 +37,10 @@ class KafkaRDDManager(object):
         self._kafka_topic = config['kafka']['topic']
         self._kafka_offset_manager = KafkaOffsetManager(config['kafka'])
         self._partitions = self._kafka_offset_manager.partitions
-        self._zk_offset_manager = ZKOffsetManager(config['zookeeper'], self._partitions)
+        if 'zookeeper' in config:
+            self._zk_offset_manager = ZKOffsetManager(config['zookeeper'], self._partitions)
+        else:
+            self._zk_offset_manager = None
 
         self.set_offset_ranges_by_policy(config['start_policy'], config['end_policy'])
 
@@ -76,7 +79,7 @@ class KafkaRDDManager(object):
             offsets = self._zk_offset_manager.get_offsets()
         return offsets
 
-    def process(self, msg_rdd_processor, commit_policy='after'):
+    def process(self, msg_rdd_processor, commit_policy=None):
         """Process the Spark RDD created by spark.streaming.kafka
         Args:
             msg_rdd_processor (callback): callback function to process RDD fetched from kafka
@@ -104,7 +107,8 @@ class KafkaRDDManager(object):
         msg_rdd_processor(msg_rdd)
 
     def _commit_offsets(self, offsets):
-        self._zk_offset_manager.set_offsets(offsets)
+        if self._zk_offset_manager is not None:
+            self._zk_offset_manager.set_offsets(offsets)
 
     def stop(self):
         """Stop manager
@@ -113,5 +117,7 @@ class KafkaRDDManager(object):
         Returns:
             None
         """
-        self._kafka_offset_manager.stop()
-        self._zk_offset_manager.stop()
+        if self._kafka_offset_manager is not None:
+            self._kafka_offset_manager.stop()
+        if self._zk_offset_manager is not None:
+            self._zk_offset_manager.stop()

@@ -3,17 +3,20 @@
 import os
 import sys
 
-try:
-    sys.path.append(os.path.join(
-        os.environ['SPARK_HOME'], 'python'))
-    sys.path.append(os.path.join(
-        os.environ['SPARK_HOME'], 'python', 'lib', 'py4j-0.8.2.1-src.zip'))
-    os.environ['PYSPARK_SUBMIT_ARGS'] = ' '.join([
-        '--packages',
-        'org.apache.spark:spark-streaming-kafka_2.10:1.5.2',
-        'pyspark-shell'])
-except KeyError:
-    raise Exception('$SPARK_HOME not set')
+SPARK_HOME = os.path.expanduser(getattr(os.environ, 'SPARK_HOME', '~/Tool/spark-1.5.2-bin-hadoop2.6/'))
+KAFKA_HOME = os.path.expanduser(getattr(os.environ, 'KAFKA_HOME', '~/Tool/kafka_2.10-0.8.2.1/'))
+
+if not os.path.isdir(SPARK_HOME):
+    raise Exception('SPARK_HOME \"%s\" not exists' % SPARK_HOME)
+if not os.path.isdir(KAFKA_HOME):
+    raise Exception('KAFKA_HOME \"%s\" not exists' % KAFKA_HOME)
+
+sys.path.append(os.path.join(SPARK_HOME, 'python'))
+sys.path.append(os.path.join(SPARK_HOME, 'python', 'lib', 'py4j-0.8.2.1-src.zip'))
+os.environ['PYSPARK_SUBMIT_ARGS'] = ' '.join([
+    '--packages',
+    'org.apache.spark:spark-streaming-kafka_2.10:1.5.2',
+    'pyspark-shell'])
 
 from time import sleep
 from subprocess import call
@@ -27,10 +30,13 @@ from testutil import generate_message
 
 def pytest_addoption(parser):
     parser.addoption('--zk_host', action='store',
+                        default='localhost:2181',
                         help='zookeeper host')
     parser.addoption('--kafka_host', action='store',
+                        default='localhost:9092',
                         help='kafka host')
     parser.addoption('--kafka_tool', action='store',
+                        default=os.path.join(KAFKA_HOME, 'bin', 'kafka-topics.sh'),
                         help='kafka tool for create topic command')
 
 
@@ -62,7 +68,6 @@ def kafka_host(request, kafka_host_str, kafka_topic, kafka_partition_count, kafk
     kafka_tool = request.config.getoption('--kafka_tool')
     host, port = kafka_host_str.split(':')
     kafka_server_start(host, port, kafka_topic, kafka_partition_count, kafka_tool)
-    request.addfinalizer(kafka_server_stop)
     hosts = kafka_host_str.split(',')
     producer = KafkaProducer(bootstrap_servers=hosts)
     for p in range(0, kafka_partition_count):
@@ -72,6 +77,7 @@ def kafka_host(request, kafka_host_str, kafka_topic, kafka_partition_count, kafk
                     value=generate_message(p, o, o),
                     partition=p)
         producer.flush()
+    request.addfinalizer(kafka_server_stop)
     return hosts
 
 @pytest.fixture(scope='session')

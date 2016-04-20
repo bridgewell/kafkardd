@@ -22,7 +22,7 @@ Usage
 import pyspark
 sc = pyspark.SparkContext()
 
-def rdd_processer(msg_rdd):
+def test_rdd_processer(msg_rdd):
 	print msg_rdd.take(10)
 
 from kafkardd.kafkardd import KafkaRDDManager, OffsetPolicy
@@ -41,7 +41,12 @@ kafka_rdd_config = {
 		}
 	}
 kafka_rdd_manager = KafkaRDDManager(kafka_rdd_config)
-kafka_rdd_manager.process(rdd_processer)
+kafka_rdd_manager.process(test_rdd_processer, commit_policy='after')
 
 sc.stop()
 ```
+
+Test
+-------------
+
+    python setup.py pytest

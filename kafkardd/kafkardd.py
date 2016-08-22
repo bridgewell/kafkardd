@@ -87,13 +87,16 @@ class KafkaRDDManager(object):
         Returns:
             None
         """
+        logger.info("working on offset ranges, %s", self._offset_ranges)
         for chunk in generate_chunk(self._offset_ranges, self._chunk_size):
+            logger.info("working on chunked offset ranges, %s", chunk)
             offset_ranges = self._compose_chunk_offset_ranges(chunk)
             if commit_policy == 'before':
                 self._commit_offsets({p: e for (p, s, e) in chunk})
             self._process_single_chunk(offset_ranges, msg_rdd_processor)
             if commit_policy == 'after':
                 self._commit_offsets({p: e for (p, s, e) in chunk})
+            logger.info("completing on chunked offset ranges, %s", chunk)
 
     def _compose_chunk_offset_ranges(self, chunk):
         split_chunks = split_chunks_by_parallelism(chunk, self._parallelism)

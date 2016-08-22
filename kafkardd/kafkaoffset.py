@@ -134,6 +134,7 @@ class KafkaOffsetManager(object):
             self._consumers[p],
             offsets[p],
             self._timestamp_extractor) for p in self.partitions}
+        logger.info("get timestamps by offsets %s, %s", offsets, timestamps)
         return timestamps
 
     def stop(self):

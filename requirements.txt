@@ -1,2 +1,4 @@
+pip==8.1.2
 kafka-python==1.0.2
 kazoo==2.2.1
+git+http://git@192.168.65.220:10080/rd/bwproto.git@master#subdirectory=python

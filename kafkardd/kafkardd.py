@@ -98,6 +98,22 @@ class KafkaRDDManager(object):
                 self._commit_offsets({p: e for (p, s, e) in chunk})
             logger.info("completing on chunked offset ranges, %s", chunk)
 
+    def fetch(self):
+        """Fetch the Spark RDD created by spark.streaming.kafka
+        Args:
+            None
+        Returns:
+            Spark RDD data
+        """
+        logger.info("fetching on offset ranges, %s", self._offset_ranges)
+        rdd_list = []
+        for chunk in generate_chunk(self._offset_ranges, self._chunk_size):
+            logger.info("fetching on chunked offset ranges, %s", chunk)
+            offset_ranges = self._compose_chunk_offset_ranges(chunk)
+            rdd = self._fetch_single_chunk(offset_ranges)
+            rdd_list.append(rdd)
+        return self._sc.union(rdd_list)
+
     def _compose_chunk_offset_ranges(self, chunk):
         split_chunks = split_chunks_by_parallelism(chunk, self._parallelism)
         offset_ranges = [OffsetRange(self._kafka_topic, partition=p, fromOffset=s, untilOffset=e)
@@ -108,6 +124,11 @@ class KafkaRDDManager(object):
         keyed_msg_rdd = KafkaUtils.createRDD(self._sc, self._kafka_param, offset_ranges, valueDecoder=lambda x: x)
         msg_rdd = keyed_msg_rdd.values()
         msg_rdd_processor(msg_rdd)
+
+    def _fetch_single_chunk(self, offset_ranges):
+        keyed_msg_rdd = KafkaUtils.createRDD(self._sc, self._kafka_param, offset_ranges, valueDecoder=lambda x: x)
+        msg_rdd = keyed_msg_rdd.values()
+        return msg_rdd
 
     def _commit_offsets(self, offsets):
         if self._zk_offset_manager is not None:

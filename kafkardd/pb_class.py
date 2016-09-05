@@ -16,6 +16,7 @@ import bwproto.rec.exchange.ucfunnel.ucfunnelbidinfo_pb2
 import bwproto.rec.exchange.tanx.tanxbidlog_pb2
 import bwproto.rec.exchange.adview.adview_pb2
 import bwproto.rec.exchange.brightroll.brightroll_pb2
+import bwproto.rec.learn.joinlog_pb2
 
 
 class TOPIC:
@@ -44,6 +45,7 @@ class TOPIC:
     DSP_Tanx =                'DSP.Tanx'               
     DSP_AdView =              'DSP.AdView'             
     DSP_BrightRoll =          'DSP.BrightRoll'         
+    Join_CTR =                'Join.CTR'
 
 
 PB_CLASS = {
@@ -72,4 +74,5 @@ PB_CLASS = {
     TOPIC.DSP_Tanx:                 bwproto.rec.exchange.tanx.tanxbidlog_pb2.TanxBidLog,
     TOPIC.DSP_AdView:               bwproto.rec.exchange.adview.adview_pb2.AdViewBidLog,
     TOPIC.DSP_BrightRoll:           bwproto.rec.exchange.brightroll.brightroll_pb2.BrightRollBidLog,
+    TOPIC.Join_CTR:                 bwproto.rec.learn.joinlog_pb2.CTRLog,
 }

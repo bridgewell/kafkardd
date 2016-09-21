@@ -54,7 +54,56 @@ def test_kafka_msg_processor(kafkardd_manager, kafka_partition_count, kafka_msg_
         assert count == (kafka_partition_count
                          * (msg_test_timestamp - msg_test_offset)
                          - sum(range(0, kafka_partition_count)))
+    kafkardd_manager.process(msg_processor)
+
+def test_kafka_msg_fetch(kafkardd_manager, kafka_partition_count, kafka_msg_count):
+    kafkardd_manager.set_offset_ranges_by_policy(
+                        OffsetPolicy('committed'),
+                        OffsetPolicy('timestamp', msg_test_timestamp)
+    )
+    rdd = kafkardd_manager.fetch()
+    assert rdd.count() == (kafka_partition_count
+                           * (msg_test_timestamp - msg_test_offset)
+                           - sum(range(0, kafka_partition_count)))
+
+def test_kafka_offset_commit_before(kafkardd_manager, zk_offset_manager, kafka_partition_count, kafka_msg_count):
+    kafkardd_manager.set_offset_ranges_by_policy(
+                        OffsetPolicy('committed'),
+                        OffsetPolicy('timestamp', msg_test_timestamp)
+    )
+    def msg_processor(rdd):
+        offsets = zk_offset_manager.get_offsets()
+        for p in range(0, kafka_partition_count):
+            assert offsets[p] == msg_test_timestamp
+    kafkardd_manager.process(msg_processor, commit_policy='before')
+    offsets = {p: msg_test_offset + p for p in range(0, kafka_partition_count)}
+    zk_offset_manager.set_offsets(offsets)
+
+def test_kafka_offset_commit_after(kafkardd_manager, zk_offset_manager, kafka_partition_count, kafka_msg_count):
+    kafkardd_manager.set_offset_ranges_by_policy(
+                        OffsetPolicy('committed'),
+                        OffsetPolicy('timestamp', msg_test_timestamp)
+    )
+    def msg_processor(rdd):
+        offsets = zk_offset_manager.get_offsets()
+        for p in range(0, kafka_partition_count):
+            assert offsets[p] == msg_test_offset + p
     kafkardd_manager.process(msg_processor, commit_policy='after')
+    offsets = zk_offset_manager.get_offsets()
+    for p in range(0, kafka_partition_count):
+        assert offsets[p] == msg_test_timestamp
+    offsets = {p: msg_test_offset + p for p in range(0, kafka_partition_count)}
+    zk_offset_manager.set_offsets(offsets)
+
+def test_offset_policy_type():
+    with pytest.raises(Exception) as excinfo:
+        OffsetPolicy('invalid-type')
+    assert 'not defined' in str(excinfo.value)
+
+def test_offset_policy_timestamp():
+    with pytest.raises(Exception) as excinfo:
+        OffsetPolicy('timestamp')
+    assert 'require the timestamp parameter' in str(excinfo.value)
 
 def test_stop(kafkardd_manager):
     kafkardd_manager.stop()

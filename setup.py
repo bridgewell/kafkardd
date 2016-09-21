@@ -19,8 +19,6 @@ setup(
     long_description=__doc__,
     license=kafkardd.__license__,
     packages=find_packages(),
-    dependency_links=['http://192.168.65.220:10080/rd/bwproto.git@master#subdirectory=python'],
-    install_requires=requirements('requirements.txt').append('bwproto'),
     setup_requires=['pytest-runner'],
-    tests_require=['pytest']
+    tests_require=['pytest', 'pytest-cov']
 )

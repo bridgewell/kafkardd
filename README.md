@@ -4,19 +4,12 @@ KafkaRDD
 Installation
 -------------
 
-    pip install git+http://git@192.168.65.220:10080/shutong/kafkardd.git
-
-or
-
-    pip install git+http://git@192.168.65.220:10080/shutong/kafkardd.git@0.0.6
-
-for specific version
-
+    pip install git+https://github.com/bridgewell/kafkardd.git
 
 Usage
 ---------------------
 
-For Kafka message to Spark RDD:
+For Kafka message to Spark RDD run with spark-submit:
 
 ```python
 # you SHOULD set HADOOP_CONF_DIR in you spark-env.sh
@@ -56,3 +49,5 @@ Test
 or
 
     python setup.py pytest --addopts '--cov kafkardd'
+
+for coverage details

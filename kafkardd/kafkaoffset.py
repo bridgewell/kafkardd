@@ -73,16 +73,21 @@ class KafkaOffsetManager(object):
             'hosts' (str) : hosts list of Kafka cluster seperated by ','
                 ex. '192.168.67.65:9092,192.168.67.67:9092'
             'topic' (str) : Kafka topic to fetch
+            'timeout_ms' (int) : Kafka consumer timeout in milliseconds, default: -1 (forever)
             'timestamp_extractor' (callback, optional) : function to extract timestamp from messages
                 required for get_offsets_by_timestamp() and get_timestamp_by_offsets()
     """
+    
+    DEFAULT_TIMEOUT_MS = -1
+
     def __init__(self, config):
         hosts = config['hosts'].split(',')
         topic = config['topic']
+        timeout_ms = config.get('timeout_ms', self.DEFAULT_TIMEOUT_MS)
         self.partitions = _get_partitions_by_topic(hosts, topic)
         self._consumers = {}
         for p in self.partitions:
-            self._consumers[p] = KafkaConsumer(bootstrap_servers=hosts)
+            self._consumers[p] = KafkaConsumer(bootstrap_servers=hosts, consumer_timeout_ms=timeout_ms)
             self._consumers[p].assign([TopicPartition(topic, p)])
         self._timestamp_extractor = config.get('timestamp_extractor')
 
